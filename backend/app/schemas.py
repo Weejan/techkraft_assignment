@@ -1,3 +1,5 @@
+from datetime import datetime
+from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr, field_validator
 
@@ -25,4 +27,54 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     role: str   
+
+# Score Schemas 
+
+class ScoreCreate(BaseModel):
+    category: str
+    score: int
+    note: Optional[str] = None
+
+    @field_validator("score")
+    @classmethod
+    def score_range(cls, v: int) -> int:
+        if not 1 <= v <= 5:
+            raise ValueError("Score must be between 1 and 5")
+        return v
+
+
+class ScoreResponse(BaseModel):
+    id: str
+    candidate_id: str
+    category: str
+    score: int
+    reviewer_id: str
+    note: Optional[str]
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# Candidate Schemas 
+class CandidateReviewerResponse(BaseModel):
+    id: str
+    name: str
+    email: str
+    role_applied: str
+    status: str
+    skills: List[str]
+    created_at: datetime
+    scores: List[ScoreResponse] = []
+
+    model_config = {"from_attributes": True}
+
+
+class CandidateAdminResponse(CandidateReviewerResponse):
+    internal_notes: Optional[str] = None
+
+
+class AISummaryResponse(BaseModel):
+    candidate_id: str
+    summary: str
+    generated_at: datetime
 
