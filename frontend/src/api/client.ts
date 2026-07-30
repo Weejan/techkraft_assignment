@@ -1,5 +1,13 @@
 import axios, { AxiosError } from "axios";
-import { AuthResponse } from "../types";
+import {
+  AuthResponse,
+  Candidate,
+  CandidateListResponse,
+  ListCandidatesParams,
+  Score,
+  ScoreCreatePayload,
+  AISummary,
+} from "../types";
 
 const api = axios.create({
   baseURL: "/api",
@@ -47,6 +55,63 @@ export const authApi = {
       email,
       password,
     });
+    return data;
+  },
+};
+
+export const candidatesApi = {
+  getAll: async (
+    params: ListCandidatesParams = {},
+  ): Promise<CandidateListResponse> => {
+    const cleanParams: Record<string, string> = {};
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== "" && v !== null && v !== undefined) {
+        cleanParams[k] = String(v);
+      }
+    });
+    const { data } = await api.get<CandidateListResponse>("/candidates/", {
+      params: cleanParams,
+    });
+    return data;
+  },
+
+  getById: async (id: string): Promise<Candidate> => {
+    const { data } = await api.get<Candidate>(`/candidates/${id}`);
+    return data;
+  },
+
+  create: async (payload: Partial<Candidate>): Promise<Candidate> => {
+    const { data } = await api.post<Candidate>("/candidates/", payload);
+    return data;
+  },
+
+  update: async (
+    id: string,
+    payload: Partial<Candidate>,
+  ): Promise<Candidate> => {
+    const { data } = await api.patch<Candidate>(`/candidates/${id}`, payload);
+    return data;
+  },
+
+  remove: async (id: string): Promise<void> => {
+    await api.delete(`/candidates/${id}`);
+  },
+
+  createScore: async (
+    candidateId: string,
+    scoreData: ScoreCreatePayload,
+  ): Promise<Score> => {
+    const { data } = await api.post<Score>(
+      `/candidates/${candidateId}/scores`,
+      scoreData,
+    );
+    return data;
+  },
+
+  generateSummary: async (candidateId: string): Promise<AISummary> => {
+    const { data } = await api.post<AISummary>(
+      `/candidates/${candidateId}/summary`,
+    );
     return data;
   },
 };
