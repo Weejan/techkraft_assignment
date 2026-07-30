@@ -5,7 +5,6 @@ from sqlalchemy import or_, cast, String
 
 from app.models import Candidate
 
-
 def search_candidates(
     db: Session,
     status: Optional[str] = None,

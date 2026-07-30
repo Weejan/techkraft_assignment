@@ -17,11 +17,9 @@ class UserRegister(BaseModel):
             raise ValueError("Password must be at least 8 characters")
         return v
 
-
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
-
 
 class Token(BaseModel):
     access_token: str
@@ -42,7 +40,6 @@ class ScoreCreate(BaseModel):
             raise ValueError("Score must be between 1 and 5")
         return v
 
-
 class ScoreResponse(BaseModel):
     id: str
     candidate_id: str
@@ -54,8 +51,25 @@ class ScoreResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
+class CandidateCreate(BaseModel):
+    name: str
+    email: EmailStr
+    role_applied: str
+    skills: List[str] = []
+    internal_notes: Optional[str] = None
 
-# Candidate Schemas 
+class CandidateUpdate(BaseModel):
+    status: Optional[str] = None
+    internal_notes: Optional[str] = None
+
+    @field_validator("status")
+    @classmethod
+    def status_valid(cls, v: Optional[str]) -> Optional[str]:
+        allowed = {"new", "reviewed", "hired", "rejected"}
+        if v and v not in allowed:
+            raise ValueError(f"Status must be one of: {', '.join(allowed)}")
+        return v
+
 class CandidateReviewerResponse(BaseModel):
     id: str
     name: str
@@ -68,13 +82,10 @@ class CandidateReviewerResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
-
 class CandidateAdminResponse(CandidateReviewerResponse):
     internal_notes: Optional[str] = None
-
 
 class AISummaryResponse(BaseModel):
     candidate_id: str
     summary: str
     generated_at: datetime
-

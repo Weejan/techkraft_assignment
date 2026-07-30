@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Candidate, Score
 from app.schemas import (
+    CandidateCreate, CandidateUpdate,
     CandidateReviewerResponse, CandidateAdminResponse,
     ScoreCreate, ScoreResponse,
     AISummaryResponse,
@@ -80,8 +81,56 @@ def list_candidates(
     }
 
 
+# POST /candidates/ 
 
-#  GET /candidates/{id} 
+@router.post("/", status_code=status.HTTP_201_CREATED, summary="Create a candidate (admin only)")
+def create_candidate(
+    payload: CandidateCreate,
+    current_user: dict = Depends(auth_utils.require_admin), 
+    db: Session = Depends(get_db),
+):
+    existing = db.query(Candidate).filter(Candidate.email == payload.email).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="Candidate with this email already exists")
+
+    candidate = Candidate(
+        name=payload.name,
+        email=payload.email,
+        role_applied=payload.role_applied,
+        skills=payload.skills,
+        internal_notes=payload.internal_notes,
+    )
+    db.add(candidate)
+    db.commit()
+    db.refresh(candidate)
+    return CandidateAdminResponse.model_validate(candidate)
+
+#  POST /candidates/ 
+
+@router.post("/", status_code=status.HTTP_201_CREATED, summary="Create a candidate (admin only)")
+def create_candidate(
+    payload: CandidateCreate,
+    current_user: dict = Depends(auth_utils.require_admin),  
+    db: Session = Depends(get_db),
+):
+    existing = db.query(Candidate).filter(Candidate.email == payload.email).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="Candidate with this email already exists")
+
+    candidate = Candidate(
+        name=payload.name,
+        email=payload.email,
+        role_applied=payload.role_applied,
+        skills=payload.skills,
+        internal_notes=payload.internal_notes,
+    )
+    db.add(candidate)
+    db.commit()
+    db.refresh(candidate)
+    return CandidateAdminResponse.model_validate(candidate)
+
+
+# GET /candidates/{id}
 
 @router.get("/{candidate_id}", summary="Get a single candidate's full detail")
 def get_candidate(
@@ -93,15 +142,81 @@ def get_candidate(
     return _build_response(candidate, current_user)
 
 
+# PATCH /candidates/{id}
+
+@router.patch("/{candidate_id}", summary="Update candidate status or notes (admin only)")
+def update_candidate(
+    candidate_id: str,
+    payload: CandidateUpdate,
+    current_user: dict = Depends(auth_utils.require_admin),
+    db: Session = Depends(get_db),
+):
+    candidate = _get_candidate_or_404(candidate_id, db)
+
+    if payload.status is not None:
+        candidate.status = payload.status
+    if payload.internal_notes is not None:
+        candidate.internal_notes = payload.internal_notes
+
+    db.commit()
+    db.refresh(candidate)
+    return CandidateAdminResponse.model_validate(candidate)
+
+
+#  DELETE /candidates/{id}
+
+@router.delete("/{candidate_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Soft-delete a candidate (admin only)")
+def delete_candidate(
+    candidate_id: str,
+    current_user: dict = Depends(auth_utils.require_admin),
+    db: Session = Depends(get_db),
+):
+    candidate = _get_candidate_or_404(candidate_id, db)
+    candidate.deleted_at = datetime.now(timezone.utc)
+    db.commit()
+
+#  PATCH /candidates/{id}
+
+@router.patch("/{candidate_id}", summary="Update candidate status or notes (admin only)")
+def update_candidate(
+    candidate_id: str,
+    payload: CandidateUpdate,
+    current_user: dict = Depends(auth_utils.require_admin),
+    db: Session = Depends(get_db),
+):
+    candidate = _get_candidate_or_404(candidate_id, db)
+
+    if payload.status is not None:
+        candidate.status = payload.status
+    if payload.internal_notes is not None:
+        candidate.internal_notes = payload.internal_notes
+
+    db.commit()
+    db.refresh(candidate)
+    return CandidateAdminResponse.model_validate(candidate)
+
+
+# DELETE /candidates/{id} 
+
+@router.delete("/{candidate_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Soft-delete a candidate (admin only)")
+def delete_candidate(
+    candidate_id: str,
+    current_user: dict = Depends(auth_utils.require_admin),
+    db: Session = Depends(get_db),
+):
+    candidate = _get_candidate_or_404(candidate_id, db)
+    candidate.deleted_at = datetime.now(timezone.utc)
+    db.commit()
+
 
 # POST /candidates/{id}/scores 
 
 @router.post("/{candidate_id}/scores", response_model=ScoreResponse, status_code=201,
-summary="Submit a score for a candidate")
+             summary="Submit a score for a candidate")
 def add_score(
     candidate_id: str,
     payload: ScoreCreate,
-    current_user: dict = Depends(auth_utils.get_current_user),  
+    current_user: dict = Depends(auth_utils.get_current_user),  # both roles can score
     db: Session = Depends(get_db),
 ):
     candidate = _get_candidate_or_404(candidate_id, db)
