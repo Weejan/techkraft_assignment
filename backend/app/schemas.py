@@ -51,6 +51,8 @@ class ScoreResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
+ScoreRead = ScoreResponse
+
 class CandidateCreate(BaseModel):
     name: str
     email: EmailStr
@@ -85,7 +87,18 @@ class CandidateReviewerResponse(BaseModel):
 class CandidateAdminResponse(CandidateReviewerResponse):
     internal_notes: Optional[str] = None
 
+CandidateRead = CandidateAdminResponse
+
+class CandidateListResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    items: List[CandidateAdminResponse]
+
 class AISummaryResponse(BaseModel):
     candidate_id: str
     summary: str
     generated_at: datetime
+
+AISummary = AISummaryResponse
