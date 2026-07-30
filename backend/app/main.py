@@ -19,6 +19,7 @@ async def lifespan(app: FastAPI):
         db.close()
     yield
 
+
 app = FastAPI(
     title="TechKraft Recruitment Dashboard API",
     description="Internal candidate scoring and review system",

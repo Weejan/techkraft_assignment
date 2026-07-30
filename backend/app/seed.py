@@ -30,7 +30,7 @@ def seed_db(db: Session):
                 role="reviewer",
             )
             db.add(existing)
-            db.flush()  
+            db.flush()
         reviewer_users.append(existing)
 
     db.commit()
@@ -153,7 +153,7 @@ def seed_db(db: Session):
         scores_data = c_data.pop("scores")
         candidate = Candidate(**c_data)
         db.add(candidate)
-        db.flush()  
+        db.flush() 
 
         for s_data in scores_data:
             reviewer_idx = s_data.pop("reviewer_idx", 0)

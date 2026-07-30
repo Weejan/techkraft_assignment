@@ -1,5 +1,5 @@
-
 from datetime import datetime
+from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr, field_validator
 
@@ -17,77 +17,75 @@ class UserRegister(BaseModel):
             raise ValueError("Password must be at least 8 characters")
         return v
 
-
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
-
 
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     role: str   
 
+# Score Schemas 
 
 class ScoreCreate(BaseModel):
     category: str
     score: int
-    note: str | None = None
+    note: Optional[str] = None
 
+    @field_validator("score")
+    @classmethod
+    def score_range(cls, v: int) -> int:
+        if not 1 <= v <= 5:
+            raise ValueError("Score must be between 1 and 5")
+        return v
 
-class ScoreRead(BaseModel):
+class ScoreResponse(BaseModel):
     id: str
     candidate_id: str
     category: str
     score: int
     reviewer_id: str
-    note: str | None = None
+    note: Optional[str]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
-
-class CandidateBase(BaseModel):
+class CandidateCreate(BaseModel):
     name: str
     email: EmailStr
     role_applied: str
-    status: str = "new"
-    skills: list[str] = []
-    internal_notes: str | None = None
-
-
-class CandidateCreate(CandidateBase):
-    pass
-
+    skills: List[str] = []
+    internal_notes: Optional[str] = None
 
 class CandidateUpdate(BaseModel):
-    name: str | None = None
-    email: EmailStr | None = None
-    role_applied: str | None = None
-    status: str | None = None
-    skills: list[str] | None = None
-    internal_notes: str | None = None
+    status: Optional[str] = None
+    internal_notes: Optional[str] = None
 
+    @field_validator("status")
+    @classmethod
+    def status_valid(cls, v: Optional[str]) -> Optional[str]:
+        allowed = {"new", "reviewed", "hired", "rejected"}
+        if v and v not in allowed:
+            raise ValueError(f"Status must be one of: {', '.join(allowed)}")
+        return v
 
-class CandidateRead(CandidateBase):
+class CandidateReviewerResponse(BaseModel):
     id: str
+    name: str
+    email: str
+    role_applied: str
+    status: str
+    skills: List[str]
     created_at: datetime
-    scores: list[ScoreRead] = []
+    scores: List[ScoreResponse] = []
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
+class CandidateAdminResponse(CandidateReviewerResponse):
+    internal_notes: Optional[str] = None
 
-class CandidateListResponse(BaseModel):
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
-    items: list[CandidateRead]
-
-
-class AISummary(BaseModel):
+class AISummaryResponse(BaseModel):
     candidate_id: str
     summary: str
     generated_at: datetime
